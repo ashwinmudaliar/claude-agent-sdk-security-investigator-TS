@@ -526,6 +526,7 @@ async function runInvestigation(targetArg: string): Promise<number> {
     allowDangerouslySkipPermissions: true,
     persistSession: false,
     additionalDirectories: [target],
+    maxThinkingTokens: 10000,
     hooks: {
       PreToolUse: [
         { matcher: "Bash", hooks: [makePreToolHook(target)] },
