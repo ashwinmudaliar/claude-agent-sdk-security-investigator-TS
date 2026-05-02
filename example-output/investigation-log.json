@@ -1,0 +1,112 @@
+{
+  "target": "./test-app",
+  "started_at": "2026-05-02T06:40:53.308Z",
+  "duration_seconds": 385.88,
+  "tool_calls": [
+    {
+      "timestamp": "2026-05-02T06:41:02.257Z",
+      "tool": "Bash",
+      "input": {
+        "command": "find ./test-app -type f | head -80 && echo \"---\" && ls ./test-app",
+        "description": "List all files in target app"
+      },
+      "summary": "bash: find ./test-app -type f | head -80 && echo \"---\" && ls ./test-app"
+    },
+    {
+      "timestamp": "2026-05-02T06:41:03.040Z",
+      "tool": "Bash",
+      "input": {
+        "command": "find ./test-app -name \"*.json\" -o -name \"*.yaml\" -o -name \"*.yml\" -o -name \"*.env*\" -o -name \".env*\" | head -30",
+        "description": "Find config and manifest files"
+      },
+      "summary": "bash: find ./test-app -name \"*.json\" -o -name \"*.yaml\" -o -name \"*.yml\" -o -name \"*.env*\" -o -name \".env*\" | head -30"
+    },
+    {
+      "timestamp": "2026-05-02T06:41:06.648Z",
+      "tool": "Read",
+      "input": {
+        "file_path": "./test-app/app.py"
+      },
+      "summary": "read ./test-app/app.py"
+    },
+    {
+      "timestamp": "2026-05-02T06:41:07.036Z",
+      "tool": "Read",
+      "input": {
+        "file_path": "./test-app/requirements.txt"
+      },
+      "summary": "read ./test-app/requirements.txt"
+    },
+    {
+      "timestamp": "2026-05-02T06:41:07.328Z",
+      "tool": "Read",
+      "input": {
+        "file_path": "./test-app/README.md"
+      },
+      "summary": "read ./test-app/README.md"
+    },
+    {
+      "timestamp": "2026-05-02T06:41:40.835Z",
+      "tool": "Read",
+      "agent_type": "code-analysis",
+      "input": {
+        "file_path": "./test-app/app.py"
+      },
+      "summary": "read ./test-app/app.py"
+    },
+    {
+      "timestamp": "2026-05-02T06:41:51.475Z",
+      "tool": "Bash",
+      "agent_type": "deps-and-config",
+      "input": {
+        "command": "find ./test-app -type f"
+      },
+      "summary": "bash: find ./test-app -type f"
+    },
+    {
+      "timestamp": "2026-05-02T06:41:52.844Z",
+      "tool": "Read",
+      "agent_type": "deps-and-config",
+      "input": {
+        "file_path": "./test-app/requirements.txt"
+      },
+      "summary": "read ./test-app/requirements.txt"
+    },
+    {
+      "timestamp": "2026-05-02T06:41:53.065Z",
+      "tool": "Read",
+      "agent_type": "deps-and-config",
+      "input": {
+        "file_path": "./test-app/app.py"
+      },
+      "summary": "read ./test-app/app.py"
+    },
+    {
+      "timestamp": "2026-05-02T06:41:54.529Z",
+      "tool": "Bash",
+      "agent_type": "deps-and-config",
+      "input": {
+        "command": "which pip-audit safety pip"
+      },
+      "summary": "bash: which pip-audit safety pip"
+    },
+    {
+      "timestamp": "2026-05-02T06:41:56.968Z",
+      "tool": "Bash",
+      "agent_type": "deps-and-config",
+      "input": {
+        "command": "python3 --version 2>&1 && python3 -m pip --version 2>&1"
+      },
+      "summary": "bash: python3 --version 2>&1 && python3 -m pip --version 2>&1"
+    },
+    {
+      "timestamp": "2026-05-02T06:42:01.088Z",
+      "tool": "Bash",
+      "agent_type": "deps-and-config",
+      "input": {
+        "command": "cd ./test-app && python3 -m pip audit --desc 2>&1"
+      },
+      "summary": "bash: cd ./test-app && python3 -m pip audit --desc 2>&1"
+    }
+  ]
+}

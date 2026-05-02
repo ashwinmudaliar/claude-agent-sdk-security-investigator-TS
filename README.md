@@ -1,1 +1,1 @@
-# claude-agent-sdk-security-investigator-TS
+# Security Investigation Agent (TypeScript)
