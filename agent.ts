@@ -26,6 +26,8 @@ import {
   type Options,
   type PreToolUseHookInput,
   type PostToolUseHookInput,
+  type SubagentStartHookInput,
+  type SubagentStopHookInput,
   type HookCallback,
   type HookJSONOutput,
 } from "@anthropic-ai/claude-agent-sdk";
@@ -457,6 +459,54 @@ function makePostToolHook(auditLog: AuditEntry[]): HookCallback {
   };
 }
 
+/**
+ * Subagent lifecycle hooks. Logs a session-start banner per subagent showing
+ * what tools are preloaded, plus a return-with-elapsed-time line on exit. Makes
+ * subagent boundaries explicit in the trace (otherwise inferred only from
+ * the orchestrator's "→ delegating" lines and the silent text-block return).
+ */
+function makeSubagentLifecycleHooks(): {
+  onStart: HookCallback;
+  onStop: HookCallback;
+} {
+  const startTimes = new Map<string, number>();
+
+  return {
+    onStart: async (input): Promise<HookJSONOutput> => {
+      const h = input as SubagentStartHookInput;
+      const agentType = h.agent_type;
+      if (!agentType) return {};
+      const def = SUBAGENTS[agentType];
+      if (!def) return {};
+
+      startTimes.set(h.agent_id, Date.now());
+
+      const tag = tagFor(agentType);
+      const tools = def.tools ?? [];
+      process.stdout.write(
+        `${tag} ★ session start  tools=${tools.join(",")}\n`,
+      );
+      return {};
+    },
+    onStop: async (input): Promise<HookJSONOutput> => {
+      const h = input as SubagentStopHookInput;
+      const agentType = h.agent_type;
+      if (!agentType) return {};
+
+      const tag = tagFor(agentType);
+      const startedAt = startTimes.get(h.agent_id);
+      const elapsed =
+        startedAt !== undefined
+          ? `${((Date.now() - startedAt) / 1000).toFixed(1)}s`
+          : "?";
+      startTimes.delete(h.agent_id);
+
+      process.stdout.write(`${tag} ↩ returned in ${elapsed}\n`);
+      return {};
+    },
+  };
+}
+
 // ----------------------------------------------------------------------------
 // Runner.
 // ----------------------------------------------------------------------------
@@ -485,7 +535,9 @@ const SUBAGENT_COLOR: Record<string, string> = {
 const COLOR_RESET = "\x1b[0m";
 
 function tagFor(subagent: string): string {
-  const label = (SUBAGENT_LABEL[subagent] ?? "??").padEnd(5);
+  // Known subagents get short labels; unknown ones (e.g. SDK-internal agent
+  // types) fall back to a 5-char truncation of their name rather than "??".
+  const label = (SUBAGENT_LABEL[subagent] ?? subagent.slice(0, 5)).padEnd(5);
   const color = SUBAGENT_COLOR[subagent] ?? SUBAGENT_COLOR.orchestrator!;
   return `${color}[${label}]${COLOR_RESET}`;
 }
@@ -520,6 +572,7 @@ async function runInvestigation(targetArg: string): Promise<number> {
   }
 
   const auditLog: AuditEntry[] = [];
+  const subagentLifecycle = makeSubagentLifecycleHooks();
 
   const today = new Date().toISOString().slice(0, 10);
   const userPrompt =
@@ -555,6 +608,12 @@ async function runInvestigation(targetArg: string): Promise<number> {
           hooks: [makePostToolHook(auditLog)],
         },
       ],
+      SubagentStart: [
+        { matcher: ".*", hooks: [subagentLifecycle.onStart] },
+      ],
+      SubagentStop: [
+        { matcher: ".*", hooks: [subagentLifecycle.onStop] },
+      ],
     },
     maxTurns: 60,
     stderr: (data: string) => process.stderr.write(`[cli] ${data}`),
@@ -562,7 +621,17 @@ async function runInvestigation(targetArg: string): Promise<number> {
 
   process.stdout.write(`▸ Investigating ${target}\n`);
   process.stdout.write(
-    `▸ Orchestrator: ${ORCHESTRATOR_MODEL}  |  Subagents: ${SUBAGENT_MODEL}\n\n`,
+    `▸ Orchestrator: ${ORCHESTRATOR_MODEL}  |  Subagents: ${SUBAGENT_MODEL}\n`,
+  );
+
+  // Active-components banner. Lists what's wired up so a viewer of the live
+  // stream knows the agent's surface area before any tool calls fire.
+  process.stdout.write(`▸ Active components:\n`);
+  process.stdout.write(
+    `    ✓ Subagents:  ${Object.keys(SUBAGENTS).join(" · ")}\n`,
+  );
+  process.stdout.write(
+    `    ✓ Hooks:      PreToolUse (execution guard) · PostToolUse (audit log)\n\n`,
   );
 
   const started = performance.now();
